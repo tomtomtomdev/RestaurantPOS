@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23222" systemVersion="24.0.0" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="OrderEntity" representedClassName="OrderEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="orderNumber" attributeType="String"/>
+        <attribute name="status" attributeType="String"/>
+        <attribute name="totalAmount" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="updatedAt" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="items" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="OrderItemEntity" inverseName="order" inverseEntity="OrderItemEntity"/>
+        <relationship name="payment" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="PaymentEntity" inverseName="order" inverseEntity="PaymentEntity"/>
+    </entity>
+    <entity name="OrderItemEntity" representedClassName="OrderItemEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="modifiers" optional="YES" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="quantity" attributeType="Integer 32" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="unitPrice" attributeType="Decimal" defaultValueString="0.0"/>
+        <relationship name="order" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="OrderEntity" inverseName="items" inverseEntity="OrderEntity"/>
+    </entity>
+    <entity name="PaymentEntity" representedClassName="PaymentEntity" syncable="YES" codeGenerationType="class">
+        <attribute name="amount" attributeType="Decimal" defaultValueString="0.0"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="paymentType" attributeType="String"/>
+        <attribute name="status" attributeType="String"/>
+        <attribute name="timestamp" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="order" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="OrderEntity" inverseName="payment" inverseEntity="OrderEntity"/>
+    </entity>
+</model>
