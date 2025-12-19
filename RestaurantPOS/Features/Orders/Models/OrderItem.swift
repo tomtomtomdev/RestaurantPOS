@@ -1,14 +1,14 @@
 import Foundation
 
-struct OrderItem: Codable, Identifiable, Equatable {
-    let id: UUID
-    let name: String
-    var quantity: Int
-    let unitPrice: Decimal
-    var modifiers: [String]
-    var specialInstructions: String?
+public struct OrderItem: Codable, Identifiable, Equatable {
+    public let id: UUID
+    public let name: String
+    public var quantity: Int
+    public let unitPrice: Decimal
+    public var modifiers: [String]
+    public var specialInstructions: String?
 
-    init(
+    public init(
         id: UUID = UUID(),
         name: String,
         quantity: Int,
@@ -24,23 +24,23 @@ struct OrderItem: Codable, Identifiable, Equatable {
         self.specialInstructions = specialInstructions
     }
 
-    var totalPrice: Decimal {
+    public var totalPrice: Decimal {
         let modifierPrice = Decimal(modifiers.count) * 0.50
         return (unitPrice + modifierPrice) * Decimal(quantity)
     }
 
-    var modifierPrice: Decimal {
+    public var modifierPrice: Decimal {
         Decimal(modifiers.count) * 0.50
     }
 
-    var displayName: String {
+    public var displayName: String {
         if modifiers.isEmpty {
             return name
         }
         return "\(name) (\(modifiers.joined(separator: ", ")))"
     }
 
-    func withQuantity(_ quantity: Int) -> OrderItem {
+    public func withQuantity(_ quantity: Int) -> OrderItem {
         return OrderItem(
             id: id,
             name: name,
@@ -51,7 +51,7 @@ struct OrderItem: Codable, Identifiable, Equatable {
         )
     }
 
-    func withModifiers(_ modifiers: [String]) -> OrderItem {
+    public func withModifiers(_ modifiers: [String]) -> OrderItem {
         return OrderItem(
             id: id,
             name: name,
@@ -62,7 +62,7 @@ struct OrderItem: Codable, Identifiable, Equatable {
         )
     }
 
-    func withSpecialInstructions(_ instructions: String?) -> OrderItem {
+    public func withSpecialInstructions(_ instructions: String?) -> OrderItem {
         return OrderItem(
             id: id,
             name: name,
@@ -73,7 +73,7 @@ struct OrderItem: Codable, Identifiable, Equatable {
         )
     }
 
-    static func == (lhs: OrderItem, rhs: OrderItem) -> Bool {
+    public static func == (lhs: OrderItem, rhs: OrderItem) -> Bool {
         return lhs.id == rhs.id ||
                (lhs.name == rhs.name &&
                 lhs.unitPrice == rhs.unitPrice &&
@@ -83,7 +83,7 @@ struct OrderItem: Codable, Identifiable, Equatable {
 }
 
 extension OrderItem {
-    init(
+    public init(
         name: String,
         quantity: Int,
         unitPrice: Decimal,

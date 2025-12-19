@@ -2,14 +2,14 @@ import Foundation
 import CoreData
 import Combine
 
-class OrderRepository: OrderRepositoryProtocol {
+public class OrderRepository: OrderRepositoryProtocol {
     private let databaseService: DatabaseServiceProtocol
 
-    init(databaseService: DatabaseServiceProtocol) {
+    public init(databaseService: DatabaseServiceProtocol) {
         self.databaseService = databaseService
     }
 
-    func createOrder(_ order: Order) -> AnyPublisher<Order, OrderError> {
+    public func createOrder(_ order: Order) -> AnyPublisher<Order, OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -51,7 +51,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func getOrder(id: UUID) -> AnyPublisher<Order?, OrderError> {
+    public func getOrder(id: UUID) -> AnyPublisher<Order?, OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -76,7 +76,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func getAllOrders() -> AnyPublisher<[Order], OrderError> {
+    public func getAllOrders() -> AnyPublisher<[Order], OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -100,7 +100,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func getOrdersWithStatus(_ status: OrderStatus) -> AnyPublisher<[Order], OrderError> {
+    public func getOrdersWithStatus(_ status: OrderStatus) -> AnyPublisher<[Order], OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -125,7 +125,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func updateOrder(_ order: Order) -> AnyPublisher<Order, OrderError> {
+    public func updateOrder(_ order: Order) -> AnyPublisher<Order, OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -159,7 +159,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func deleteOrder(id: UUID) -> AnyPublisher<Void, OrderError> {
+    public func deleteOrder(id: UUID) -> AnyPublisher<Void, OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -191,7 +191,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func getOrders(from startDate: Date, to endDate: Date) -> AnyPublisher<[Order], OrderError> {
+    public func getOrders(from startDate: Date, to endDate: Date) -> AnyPublisher<[Order], OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -220,7 +220,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func searchOrders(query: String) -> AnyPublisher<[Order], OrderError> {
+    public func searchOrders(query: String) -> AnyPublisher<[Order], OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))
@@ -262,7 +262,7 @@ class OrderRepository: OrderRepositoryProtocol {
         .eraseToAnyPublisher()
     }
 
-    func getOrdersCount() -> AnyPublisher<Int, OrderError> {
+    public func getOrdersCount() -> AnyPublisher<Int, OrderError> {
         return Future { [weak self] promise in
             guard let self = self else {
                 promise(.failure(.invalidItemIndex))

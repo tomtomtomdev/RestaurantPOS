@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 
-protocol OrderRepositoryProtocol {
+public protocol OrderRepositoryProtocol {
     func createOrder(_ order: Order) -> AnyPublisher<Order, OrderError>
     func getOrder(id: UUID) -> AnyPublisher<Order?, OrderError>
     func getAllOrders() -> AnyPublisher<[Order], OrderError>

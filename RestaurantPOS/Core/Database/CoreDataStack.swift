@@ -8,18 +8,18 @@
 import CoreData
 
 /// Core Data stack manager for the RestaurantPOS application
-final class CoreDataStack: DatabaseServiceProtocol {
+public final class CoreDataStack: DatabaseServiceProtocol {
 
     // MARK: - Properties
 
     /// Shared singleton instance
-    static let shared = CoreDataStack()
+    public static let shared = CoreDataStack()
 
     /// The persistent container
     private let persistentContainer: NSPersistentContainer
 
     /// Main context for UI operations (main queue)
-    var mainContext: NSManagedObjectContext {
+    public var mainContext: NSManagedObjectContext {
         return persistentContainer.viewContext
     }
 
@@ -27,7 +27,7 @@ final class CoreDataStack: DatabaseServiceProtocol {
 
     /// Initializes the Core Data stack with a given model name
     /// - Parameter modelName: The name of the Core Data model (default: "RestaurantPOS")
-    init(modelName: String = "RestaurantPOS") {
+    public init(modelName: String = "RestaurantPOS") {
         persistentContainer = NSPersistentContainer(name: modelName)
         persistentContainer.loadPersistentStores { description, error in
             if let error = error {
@@ -42,7 +42,7 @@ final class CoreDataStack: DatabaseServiceProtocol {
 
     /// Initializes an in-memory Core Data stack for testing
     /// - Parameter inMemory: Whether to use in-memory storage
-    init(inMemory: Bool) {
+    public init(inMemory: Bool) {
         persistentContainer = NSPersistentContainer(name: "RestaurantPOS")
 
         if inMemory {
@@ -65,7 +65,7 @@ final class CoreDataStack: DatabaseServiceProtocol {
 
     /// Creates a new background context for background operations
     /// - Returns: A new background managed object context
-    func newBackgroundContext() -> NSManagedObjectContext {
+    public func newBackgroundContext() -> NSManagedObjectContext {
         let context = persistentContainer.newBackgroundContext()
         context.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         return context
@@ -74,7 +74,7 @@ final class CoreDataStack: DatabaseServiceProtocol {
     /// Saves changes in the given context
     /// - Parameter context: The context to save
     /// - Throws: Core Data save errors
-    func saveContext(_ context: NSManagedObjectContext) throws {
+    public func saveContext(_ context: NSManagedObjectContext) throws {
         guard context.hasChanges else { return }
 
         do {
@@ -88,7 +88,7 @@ final class CoreDataStack: DatabaseServiceProtocol {
     /// Performs a block on a background context and saves it
     /// - Parameter block: The block to execute with the background context
     /// - Throws: Core Data errors
-    func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) throws -> Void) throws {
+    public func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) throws -> Void) throws {
         let context = newBackgroundContext()
 
         var blockError: Error?

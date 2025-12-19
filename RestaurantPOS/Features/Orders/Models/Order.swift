@@ -42,19 +42,19 @@ public enum OrderStatus: String, CaseIterable, Codable {
     }
 }
 
-struct Order: Codable, Identifiable, Equatable {
-    let id: UUID
-    var orderNumber: String
-    var status: OrderStatus
-    var items: [OrderItem]
-    var subtotal: Decimal
-    var tax: Decimal
-    var totalAmount: Decimal
-    var createdAt: Date
-    var updatedAt: Date
-    var completedAt: Date?
+public struct Order: Codable, Identifiable, Equatable {
+    public let id: UUID
+    public var orderNumber: String
+    public var status: OrderStatus
+    public var items: [OrderItem]
+    public var subtotal: Decimal
+    public var tax: Decimal
+    public var totalAmount: Decimal
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var completedAt: Date?
 
-    init(
+    public init(
         id: UUID = UUID(),
         orderNumber: String = Order.generateOrderNumber(),
         status: OrderStatus = .pending,
@@ -76,11 +76,11 @@ struct Order: Codable, Identifiable, Equatable {
         self.completedAt = completedAt
     }
 
-    var itemCount: Int {
+    public var itemCount: Int {
         items.reduce(0) { $0 + $1.quantity }
     }
 
-    func updateStatus(_ newStatus: OrderStatus) -> Result<Order, OrderError> {
+    public func updateStatus(_ newStatus: OrderStatus) -> Result<Order, OrderError> {
         guard status.canTransition(to: newStatus) else {
             return .failure(.invalidStatusTransition(from: status, to: newStatus))
         }
@@ -96,7 +96,7 @@ struct Order: Codable, Identifiable, Equatable {
         return .success(updatedOrder)
     }
 
-    func addItem(_ item: OrderItem) -> Order {
+    public func addItem(_ item: OrderItem) -> Order {
         var updatedOrder = self
         if let existingIndex = updatedOrder.items.firstIndex(where: { $0.name == item.name && $0.modifiers == item.modifiers }) {
             updatedOrder.items[existingIndex].quantity += item.quantity
@@ -108,7 +108,7 @@ struct Order: Codable, Identifiable, Equatable {
         return updatedOrder
     }
 
-    func removeItem(at index: Int) -> Result<Order, OrderError> {
+    public func removeItem(at index: Int) -> Result<Order, OrderError> {
         guard index >= 0 && index < items.count else {
             return .failure(.invalidItemIndex)
         }
@@ -120,7 +120,7 @@ struct Order: Codable, Identifiable, Equatable {
         return .success(updatedOrder)
     }
 
-    func updateItemQuantity(at index: Int, quantity: Int) -> Result<Order, OrderError> {
+    public func updateItemQuantity(at index: Int, quantity: Int) -> Result<Order, OrderError> {
         guard index >= 0 && index < items.count else {
             return .failure(.invalidItemIndex)
         }
@@ -141,7 +141,7 @@ struct Order: Codable, Identifiable, Equatable {
         totalAmount = subtotal * (1 + tax)
     }
 
-    static func generateOrderNumber() -> String {
+    public static func generateOrderNumber() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd"
         let dateString = formatter.string(from: Date())
@@ -150,13 +150,13 @@ struct Order: Codable, Identifiable, Equatable {
     }
 }
 
-enum OrderError: Error, LocalizedError, Equatable {
+public enum OrderError: Error, LocalizedError, Equatable {
     case invalidStatusTransition(from: OrderStatus, to: OrderStatus)
     case invalidItemIndex
     case invalidQuantity
     case emptyOrder
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .invalidStatusTransition(let from, let to):
             return "Cannot transition order from \(from.displayName) to \(to.displayName)"

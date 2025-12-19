@@ -8,7 +8,7 @@
 import CoreData
 
 /// Protocol defining the database service interface for Core Data operations
-protocol DatabaseServiceProtocol {
+public protocol DatabaseServiceProtocol {
 
     /// The main context for UI operations (main queue)
     var mainContext: NSManagedObjectContext { get }
