@@ -1,7 +1,7 @@
 import Foundation
 
-struct OrderListItem: Identifiable {
-    let id: UUID
+public struct OrderListItem: Identifiable {
+    public let id: UUID
     let orderNumber: String
     let status: OrderStatus
     let itemCount: Int
@@ -98,7 +98,7 @@ struct OrderListItem: Identifiable {
 
 // MARK: - Sorting Options
 
-enum OrderListSortOption: CaseIterable {
+public enum OrderListSortOption: CaseIterable {
     case newestFirst
     case oldestFirst
     case highestAmount
@@ -135,7 +135,7 @@ enum OrderListSortOption: CaseIterable {
 
 // MARK: - Filter Options
 
-struct OrderListFilter {
+public struct OrderListFilter {
     var statuses: Set<OrderStatus> = []
     var searchText: String = ""
     var dateRange: DateRange? = nil

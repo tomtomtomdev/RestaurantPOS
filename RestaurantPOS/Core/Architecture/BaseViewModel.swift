@@ -8,7 +8,7 @@
 import Foundation
 
 /// Base class for all ViewModels providing common functionality
-class BaseViewModel: ViewModelProtocol {
+open class BaseViewModel: ViewModelProtocol {
 
     // MARK: - Properties
 
@@ -23,11 +23,11 @@ class BaseViewModel: ViewModelProtocol {
 
     // MARK: - ViewModelProtocol
 
-    func viewDidLoad() {
+    public func viewDidLoad() {
         // Subclasses can override
     }
 
-    func refresh() {
+    public func refresh() {
         // Subclasses can override
     }
 

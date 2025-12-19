@@ -8,7 +8,7 @@
 import Foundation
 
 /// A generic observable wrapper for data binding between ViewModels and Views
-final class Observable<T> {
+public final class Observable<T> {
 
     // MARK: - Properties
 

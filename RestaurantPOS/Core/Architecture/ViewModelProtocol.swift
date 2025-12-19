@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol defining the base requirements for all ViewModels
-protocol ViewModelProtocol {
+public protocol ViewModelProtocol {
 
     /// Called when the ViewModel should start its initial operations
     func viewDidLoad()
@@ -17,7 +17,7 @@ protocol ViewModelProtocol {
     func refresh()
 }
 
-extension ViewModelProtocol {
+public extension ViewModelProtocol {
 
     /// Default implementation of viewDidLoad (optional)
     func viewDidLoad() {

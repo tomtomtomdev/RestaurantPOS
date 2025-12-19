@@ -2,13 +2,13 @@ import Foundation
 import Combine
 
 @MainActor
-class OrderListViewModel: BaseViewModel {
+open class OrderListViewModel: BaseViewModel {
     // MARK: - Dependencies
     private let orderService: OrderServiceProtocol
 
     // MARK: - Published Properties
-    @Published private(set) var orders: [OrderListItem] = []
-    @Published private(set) var filteredOrders: [OrderListItem] = []
+    @Published open private(set) var orders: [OrderListItem] = []
+    @Published open private(set) var filteredOrders: [OrderListItem] = []
 
     // MARK: - Filter and Sort Properties
     @Published var searchText: String = "" {
@@ -31,44 +31,44 @@ class OrderListViewModel: BaseViewModel {
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Computed Properties
-    var hasOrders: Bool {
+    open var hasOrders: Bool {
         !orders.isEmpty
     }
 
-    var hasFilteredOrders: Bool {
+    open var hasFilteredOrders: Bool {
         !filteredOrders.isEmpty
     }
 
-    var isEmpty: Bool {
+    open var isEmpty: Bool {
         orders.isEmpty
     }
 
-    var noResultsFound: Bool {
+    open var noResultsFound: Bool {
         !filteredOrders.isEmpty && !searchText.isEmpty
     }
 
     // MARK: - Statistics
-    var totalOrdersCount: Int {
+    open var totalOrdersCount: Int {
         orders.count
     }
 
-    var filteredOrdersCount: Int {
+    open var filteredOrdersCount: Int {
         filteredOrders.count
     }
 
-    var pendingOrdersCount: Int {
+    open var pendingOrdersCount: Int {
         orders.filter { $0.status == .pending }.count
     }
 
-    var inProgressOrdersCount: Int {
+    open var inProgressOrdersCount: Int {
         orders.filter { $0.status == .inProgress }.count
     }
 
-    var completedOrdersCount: Int {
+    open var completedOrdersCount: Int {
         orders.filter { $0.status == .completed }.count
     }
 
-    var totalRevenue: Decimal {
+    open var totalRevenue: Decimal {
         orders
             .filter { $0.status == .completed }
             .reduce(0) { $0 + $1.totalAmount }
@@ -100,11 +100,11 @@ class OrderListViewModel: BaseViewModel {
     }
 
     // MARK: - Public Methods
-    func refreshOrders() {
+    open func refreshOrders() {
         loadOrders()
     }
 
-    func updateOrderStatus(id: UUID, to status: OrderStatus) {
+    open func updateOrderStatus(id: UUID, to status: OrderStatus) {
         setLoading(true)
         clearError()
 
@@ -124,7 +124,7 @@ class OrderListViewModel: BaseViewModel {
             .store(in: &cancellables)
     }
 
-    func deleteOrder(id: UUID) {
+    open func deleteOrder(id: UUID) {
         setLoading(true)
         clearError()
 

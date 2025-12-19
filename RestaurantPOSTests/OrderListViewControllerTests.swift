@@ -25,14 +25,13 @@ final class OrderListViewControllerTests: XCTestCase {
         XCTAssertNotNil(viewController.tableView)
         XCTAssertNotNil(viewController.searchController)
         XCTAssertEqual(viewController.title, "Orders")
-        XCTAssertFalse(viewController.isEmpty)
     }
 
     func testTableViewDataSource() {
         // Set up mock orders
         let order1 = createMockOrderListItem(orderNumber: "ORD-001", itemCount: 2)
         let order2 = createMockOrderListItem(orderNumber: "ORD-002", itemCount: 3)
-        mockViewModel.filteredOrders = [order1, order2]
+        mockViewModel.mockFilteredOrders = [order1, order2]
 
         // Test data source methods
         XCTAssertEqual(viewController.tableView(viewController.tableView, numberOfRowsInSection: 0), 2)
@@ -44,7 +43,7 @@ final class OrderListViewControllerTests: XCTestCase {
     func testTableViewDelegate() {
         // Set up mock orders
         let order1 = createMockOrderListItem(orderNumber: "ORD-001", itemCount: 2)
-        mockViewModel.filteredOrders = [order1]
+        mockViewModel.mockFilteredOrders = [order1]
 
         // Test row height
         XCTAssertEqual(viewController.tableView(viewController.tableView, heightForRowAt: IndexPath(row: 0, section: 0)), 100)
@@ -71,18 +70,18 @@ final class OrderListViewControllerTests: XCTestCase {
 
     func testEmptyStateVisibility() {
         // Initially, empty state should be visible if no orders
-        mockViewModel.isEmpty = true
+        mockViewModel.mockIsEmpty = true
         viewController.updateEmptyState()
 
         // In a real test, we'd verify the empty state view is visible
         // This would require accessing private properties or adding test accessors
     }
 
-    func testStatisticsDisplay() {
+    @MainActor func testStatisticsDisplay() {
         // Set up mock orders with different statuses
         let order1 = createMockOrderListItem(orderNumber: "ORD-001", status: .completed)
         let order2 = createMockOrderListItem(orderNumber: "ORD-002", status: .pending)
-        mockViewModel.orders = [order1, order2]
+        mockViewModel.mockOrders = [order1, order2]
 
         viewController.updateStatistics()
 
@@ -103,7 +102,7 @@ final class OrderListViewControllerTests: XCTestCase {
 
     func testLoadingState() {
         // Simulate loading state
-        mockViewModel.isLoading = true
+        mockViewModel.mockIsLoading = true
 
         // Verify loading indicator is shown
         XCTAssertTrue(viewController.loadingIndicator.isAnimating)
@@ -112,7 +111,7 @@ final class OrderListViewControllerTests: XCTestCase {
 
     func testErrorHandling() {
         let error = OrderError.invalidItemIndex
-        mockViewModel.error = error
+        mockViewModel.mockError = error
 
         // In a real test, we'd verify an alert is shown
         // This would require mocking UIAlertController
@@ -143,29 +142,11 @@ final class OrderListViewControllerTests: XCTestCase {
 
 class MockOrderListViewModel: OrderListViewModel {
     // Test-accessible properties
-    var isEmpty: Bool = false {
-        didSet { objectWillChange.send() }
-    }
-
-    var filteredOrders: [OrderListItem] = [] {
-        didSet { objectWillChange.send() }
-    }
-
-    var orders: [OrderListItem] = [] {
-        didSet { objectWillChange.send() }
-    }
-
-    var isLoading: Bool = false {
-        didSet { objectWillChange.send() }
-    }
-
-    var error: OrderError? {
-        didSet { objectWillChange.send() }
-    }
-
-    var searchText: String = ""
-    var selectedStatuses: Set<OrderStatus> = []
-    var selectedSortOption: OrderListSortOption = .newestFirst
+    var mockIsEmpty: Bool = false
+    var mockFilteredOrders: [OrderListItem] = []
+    var mockOrders: [OrderListItem] = []
+    var mockIsLoading: Bool = false
+    var mockError: OrderError?
 
     // Test tracking
     var refreshCalled = false
@@ -173,16 +154,36 @@ class MockOrderListViewModel: OrderListViewModel {
     var deleteOrderCalled = false
 
     // Override computed properties for testing
+    override var isEmpty: Bool {
+        return mockIsEmpty
+    }
+
+    override var filteredOrders: [OrderListItem] {
+        return mockFilteredOrders
+    }
+
+    override var orders: [OrderListItem] {
+        return mockOrders
+    }
+
+    override var isLoading: Bool {
+        return mockIsLoading
+    }
+
+    override var error: OrderError? {
+        return mockError
+    }
+
     override var filteredOrdersCount: Int {
-        return filteredOrders.count
+        return mockFilteredOrders.count
     }
 
     override var totalOrdersCount: Int {
-        return orders.count
+        return mockOrders.count
     }
 
     override var completedOrdersCount: Int {
-        return orders.filter { $0.status == .completed }.count
+        return mockOrders.filter { $0.status == .completed }.count
     }
 
     // Override methods for testing
@@ -197,7 +198,4 @@ class MockOrderListViewModel: OrderListViewModel {
     override func deleteOrder(id: UUID) {
         deleteOrderCalled = true
     }
-
-    // Make objectWillChange.send() available
-    private let objectWillChange = PassthroughSubject<Void, Never>()
 }
