@@ -8,7 +8,8 @@ final class OrderServiceTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        orderService = OrderService()
+        let coreDataStack = CoreDataStack(inMemory: true)
+        orderService = OrderService(databaseService: coreDataStack)
         cancellables = Set<AnyCancellable>()
     }
 

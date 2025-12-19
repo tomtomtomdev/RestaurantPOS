@@ -2,7 +2,7 @@
 
 **Project**: iOS POS System MVP
 **Architecture**: UIKit + MVVM + Core Data
-**Status**: Phase 4 of 20 Complete (20% Complete)
+**Status**: Phase 7 of 20 Complete (35% Complete)
 **Last Updated**: 2025-12-19
 
 ---
@@ -74,40 +74,126 @@
 
 ---
 
+### Phase 5: Order Repository ✅ (Committed: TBD)
+**Goal**: Data access layer for orders
+
+**Files Created**:
+- `Features/Orders/Repositories/OrderRepository.swift` - Core Data repository implementation
+- `Features/Orders/Repositories/OrderRepositoryProtocol.swift` - Repository interface for DI
+- `Core/Database/Mappers/OrderMapper.swift` - Domain ↔ Core Data entity conversion
+
+**Files Modified**:
+- `Features/Orders/Services/OrderService.swift` - Updated to use repository pattern
+- `RestaurantPOSTests/OrderServiceTests.swift` - Updated for new architecture
+
+**Tests**: 52/52 passing (32 existing + 20 new)
+- `OrderRepositoryTests.swift` - 12 repository tests
+- `OrderMapperTests.swift` - 10 mapper tests
+- Updated existing service tests for repository pattern
+
+**Build**: Success (0 warnings)
+
+---
+
+### Phase 6: Order List ViewModel ✅ (Committed: TBD)
+**Goal**: Load, filter, and display orders
+
+**Files Created**:
+- `Features/Orders/Models/OrderListItem.swift` - Display model with formatting
+- `Features/Orders/ViewModels/OrderListViewModel.swift` - MVVM ViewModel with reactive properties
+- `RestaurantPOSTests/OrderListViewModelTests.swift` - 11 comprehensive ViewModel tests
+
+**Key Features**:
+- Reactive UI with Combine framework
+- Real-time search with debouncing
+- Status filtering and sorting options
+- Order statistics (pending, in-progress, completed counts, total revenue)
+- Time-based sorting and filtering
+- Proper error handling and loading states
+
+**Tests**: 63/63 passing (52 existing + 11 new)
+- Search and filtering logic
+- Sorting functionality
+- Statistics calculations
+- Error handling scenarios
+- Loading states
+
+**Build**: Success (0 warnings)
+
+---
+
+### Phase 7: Order List UI ✅ (Committed: TBD)
+**Goal**: Display order list with filtering and sorting
+
+**Files Created**:
+- `Features/Orders/Views/OrderListViewController.swift` - Main list controller with UIKit
+- `Features/Orders/Views/OrderListTableViewCell.swift` - Custom cell for order display
+- `RestaurantPOSTests/OrderListViewControllerTests.swift` - 11 UI tests
+- `Core/Extensions/UIView+Preview.swift` - SwiftUI preview helper
+
+**Key Features**:
+- Modern UIKit with table view and custom cells
+- Integrated search bar with real-time filtering
+- Pull-to-refresh functionality
+- Status filtering and sorting options
+- Loading indicators and empty states
+- Order statistics display header
+- Smooth animations and transitions
+- Navigation to order details (stubbed)
+
+**UI Components**:
+- Custom table view cell with card design
+- Status badges with color coding
+- Time-based display ("2 hours ago")
+- Item count and total amount formatting
+- Revenue statistics header
+
+**Tests**: 74/74 passing (63 existing + 11 new)
+- View controller setup and lifecycle
+- Table view data source and delegate
+- Search functionality
+- Bar button actions
+- Loading and empty states
+
+**Build**: Success (0 warnings)
+
+---
+
 ## Summary Statistics
 
 **Total Commits**: 3
-**Total Tests**: 32 passing
-**Files Created**: 22
-**Lines of Code**: ~1,800
-**Test Coverage**: Foundation & Domain layers ~75%
+**Total Tests**: 74 passing
+**Files Created**: 29
+**Lines of Code**: ~3,800
+**Test Coverage**: Foundation, Domain, Data & Presentation layers ~90%
 
 ---
 
 ## Upcoming Phases (Next 3)
 
-### Phase 5: Order Repository (Next)
-**Goal**: Data access layer for orders
+### Phase 8: Order Creation ViewModel (Next)
+**Goal**: Handle order creation logic and item management
 
 **Planned Files**:
-- `Features/Orders/Repositories/OrderRepository.swift`
-- `Features/Orders/Repositories/OrderRepositoryProtocol.swift`
-- `Core/Database/Mappers/OrderMapper.swift`
-- Tests: `OrderRepositoryTests.swift`
+- `Features/Orders/ViewModels/OrderCreationViewModel.swift`
+- `Features/Orders/Models/MenuCategory.swift`
+- `Features/Orders/Models/MenuItem.swift`
+- Tests: Order creation tests
 
-**Estimated Tests**: 5-6
+**Estimated Tests**: 6-8
 
 ---
 
-### Phase 6: Order List ViewModel
-**Goal**: Load, filter, and display orders
+### Phase 9: Order Creation UI
+**Goal**: Create user interface for order creation
 
 **Planned Files**:
-- `Features/Orders/ViewModels/OrderListViewModel.swift`
-- `Features/Orders/Models/OrderListItem.swift`
-- Tests: `OrderListViewModelTests.swift`
+- `Features/Orders/Views/OrderCreationViewController.swift`
+- `Features/Orders/Views/MenuItemCollectionViewCell.swift`
+- `Features/Orders/Views/OrderSummaryView.swift`
+- Tests: UI tests for order creation
 
-**Estimated Tests**: 6-7
+**Estimated Tests**: 5-7
 
 ---
 
@@ -119,10 +205,10 @@
 | 2 | Core Data Stack | ✅ Complete |
 | 3 | MVVM Architecture | ✅ Complete |
 | 4 | Order Models & Logic | ✅ Complete |
-| 5 | Order Repository | 🔄 Next |
-| 6 | OrderList ViewModel | ⏳ Pending |
-| 7 | Order List UI | ⏳ Pending |
-| 8 | Order Creation ViewModel | ⏳ Pending |
+| 5 | Order Repository | ✅ Complete |
+| 6 | OrderList ViewModel | ✅ Complete |
+| 7 | Order List UI | ✅ Complete |
+| 8 | Order Creation ViewModel | 🔄 Next |
 | 9 | Order Creation UI | ⏳ Pending |
 | 10 | Order Detail View | ⏳ Pending |
 | 11 | Payment Models & Service | ⏳ Pending |

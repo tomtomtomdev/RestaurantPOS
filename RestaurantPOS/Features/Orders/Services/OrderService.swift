@@ -1,178 +1,141 @@
 import Foundation
+import CoreData
 import Combine
 
 class OrderService: OrderServiceProtocol {
-    private var orders: [Order] = []
-    private let subject = CurrentValueSubject<[Order], Never>([])
+    private let repository: OrderRepositoryProtocol
+    private let databaseService: DatabaseServiceProtocol
 
-    init() {
-        loadSampleOrders()
+    init(databaseService: DatabaseServiceProtocol) {
+        self.databaseService = databaseService
+        self.repository = OrderRepository(databaseService: databaseService)
+        loadSampleOrdersIfNeeded()
+    }
+
+    // For testing purposes
+    init(repository: OrderRepositoryProtocol) {
+        self.repository = repository
+        self.databaseService = MockDatabaseService()
     }
 
     func createOrder() -> AnyPublisher<Order, OrderError> {
         let newOrder = Order()
-        orders.append(newOrder)
-        subject.send(orders)
-        return Just(newOrder)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+        return repository.createOrder(newOrder)
     }
 
     func getOrder(id: UUID) -> AnyPublisher<Order?, OrderError> {
-        let order = orders.first { $0.id == id }
-        return Just(order)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+        return repository.getOrder(id: id)
     }
 
     func getAllOrders() -> AnyPublisher<[Order], OrderError> {
-        return Just(orders)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+        return repository.getAllOrders()
     }
 
     func getOrdersWithStatus(_ status: OrderStatus) -> AnyPublisher<[Order], OrderError> {
-        let filteredOrders = orders.filter { $0.status == status }
-        return Just(filteredOrders)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+        return repository.getOrdersWithStatus(status)
     }
 
     func updateOrder(_ order: Order) -> AnyPublisher<Order, OrderError> {
-        guard let index = orders.firstIndex(where: { $0.id == order.id }) else {
-            return Fail(error: OrderError.invalidItemIndex)
-                .eraseToAnyPublisher()
-        }
-
-        var updatedOrder = order
-        updatedOrder.updatedAt = Date()
-        orders[index] = updatedOrder
-        subject.send(orders)
-
-        return Just(updatedOrder)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+        return repository.updateOrder(order)
     }
 
     func updateOrderStatus(id: UUID, status: OrderStatus) -> AnyPublisher<Order, OrderError> {
-        guard let index = orders.firstIndex(where: { $0.id == id }) else {
-            return Fail(error: OrderError.invalidItemIndex)
-                .eraseToAnyPublisher()
-        }
+        return repository.getOrder(id: id)
+            .flatMap { order -> AnyPublisher<Order, OrderError> in
+                guard let order = order else {
+                    return Fail(error: OrderError.invalidItemIndex)
+                        .eraseToAnyPublisher()
+                }
 
-        let result = orders[index].updateStatus(status)
-
-        switch result {
-        case .success(let updatedOrder):
-            orders[index] = updatedOrder
-            subject.send(orders)
-            return Just(updatedOrder)
-                .setFailureType(to: OrderError.self)
-                .eraseToAnyPublisher()
-        case .failure(let error):
-            return Fail(error: error)
-                .eraseToAnyPublisher()
-        }
-    }
-
-    func deleteOrder(id: UUID) -> AnyPublisher<Void, OrderError> {
-        guard let index = orders.firstIndex(where: { $0.id == id }) else {
-            return Fail(error: OrderError.invalidItemIndex)
-                .eraseToAnyPublisher()
-        }
-
-        orders.remove(at: index)
-        subject.send(orders)
-
-        return Just(())
-            .setFailureType(to: OrderError.self)
+                let result = order.updateStatus(status)
+                switch result {
+                case .success(let updatedOrder):
+                    return self.repository.updateOrder(updatedOrder)
+                case .failure(let error):
+                    return Fail(error: error)
+                        .eraseToAnyPublisher()
+                }
+            }
             .eraseToAnyPublisher()
     }
 
+    func deleteOrder(id: UUID) -> AnyPublisher<Void, OrderError> {
+        return repository.deleteOrder(id: id)
+    }
+
     func addItemToOrder(orderId: UUID, item: OrderItem) -> AnyPublisher<Order, OrderError> {
-        guard let index = orders.firstIndex(where: { $0.id == orderId }) else {
-            return Fail(error: OrderError.invalidItemIndex)
-                .eraseToAnyPublisher()
-        }
+        return repository.getOrder(id: orderId)
+            .flatMap { order -> AnyPublisher<Order, OrderError> in
+                guard let order = order else {
+                    return Fail(error: OrderError.invalidItemIndex)
+                        .eraseToAnyPublisher()
+                }
 
-        var updatedOrder = orders[index]
-        updatedOrder = updatedOrder.addItem(item)
-        orders[index] = updatedOrder
-        subject.send(orders)
-
-        return Just(updatedOrder)
-            .setFailureType(to: OrderError.self)
+                let updatedOrder = order.addItem(item)
+                return self.repository.updateOrder(updatedOrder)
+            }
             .eraseToAnyPublisher()
     }
 
     func removeItemFromOrder(orderId: UUID, itemIndex: Int) -> AnyPublisher<Order, OrderError> {
-        guard let orderIndex = orders.firstIndex(where: { $0.id == orderId }) else {
-            return Fail(error: OrderError.invalidItemIndex)
-                .eraseToAnyPublisher()
-        }
+        return repository.getOrder(id: orderId)
+            .flatMap { order -> AnyPublisher<Order, OrderError> in
+                guard let order = order else {
+                    return Fail(error: OrderError.invalidItemIndex)
+                        .eraseToAnyPublisher()
+                }
 
-        let result = orders[orderIndex].removeItem(at: itemIndex)
-
-        switch result {
-        case .success(let updatedOrder):
-            orders[orderIndex] = updatedOrder
-            subject.send(orders)
-            return Just(updatedOrder)
-                .setFailureType(to: OrderError.self)
-                .eraseToAnyPublisher()
-        case .failure(let error):
-            return Fail(error: error)
-                .eraseToAnyPublisher()
-        }
+                let result = order.removeItem(at: itemIndex)
+                switch result {
+                case .success(let updatedOrder):
+                    return self.repository.updateOrder(updatedOrder)
+                case .failure(let error):
+                    return Fail(error: error)
+                        .eraseToAnyPublisher()
+                }
+            }
+            .eraseToAnyPublisher()
     }
 
     func updateItemQuantity(orderId: UUID, itemIndex: Int, quantity: Int) -> AnyPublisher<Order, OrderError> {
-        guard let orderIndex = orders.firstIndex(where: { $0.id == orderId }) else {
-            return Fail(error: OrderError.invalidItemIndex)
-                .eraseToAnyPublisher()
-        }
+        return repository.getOrder(id: orderId)
+            .flatMap { order -> AnyPublisher<Order, OrderError> in
+                guard let order = order else {
+                    return Fail(error: OrderError.invalidItemIndex)
+                        .eraseToAnyPublisher()
+                }
 
-        let result = orders[orderIndex].updateItemQuantity(at: itemIndex, quantity: quantity)
-
-        switch result {
-        case .success(let updatedOrder):
-            orders[orderIndex] = updatedOrder
-            subject.send(orders)
-            return Just(updatedOrder)
-                .setFailureType(to: OrderError.self)
-                .eraseToAnyPublisher()
-        case .failure(let error):
-            return Fail(error: error)
-                .eraseToAnyPublisher()
-        }
+                let result = order.updateItemQuantity(at: itemIndex, quantity: quantity)
+                switch result {
+                case .success(let updatedOrder):
+                    return self.repository.updateOrder(updatedOrder)
+                case .failure(let error):
+                    return Fail(error: error)
+                        .eraseToAnyPublisher()
+                }
+            }
+            .eraseToAnyPublisher()
     }
 
     func getOrders(from startDate: Date, to endDate: Date) -> AnyPublisher<[Order], OrderError> {
-        let filteredOrders = orders.filter { order in
-            order.createdAt >= startDate && order.createdAt <= endDate
-        }
-        return Just(filteredOrders)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+        return repository.getOrders(from: startDate, to: endDate)
     }
 
     func searchOrders(query: String) -> AnyPublisher<[Order], OrderError> {
-        let trimmedQuery = query.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedQuery.isEmpty else {
-            return Just(orders)
-                .setFailureType(to: OrderError.self)
-                .eraseToAnyPublisher()
-        }
+        return repository.searchOrders(query: query)
+    }
 
-        let filteredOrders = orders.filter { order in
-            order.orderNumber.lowercased().contains(trimmedQuery) ||
-            order.items.contains { item in
-                item.name.lowercased().contains(trimmedQuery)
-            }
-        }
-        return Just(filteredOrders)
-            .setFailureType(to: OrderError.self)
-            .eraseToAnyPublisher()
+    private func loadSampleOrdersIfNeeded() {
+        repository.getOrdersCount()
+            .sink(
+                receiveCompletion: { _ in },
+                receiveValue: { [weak self] count in
+                    if count == 0 {
+                        self?.loadSampleOrders()
+                    }
+                }
+            )
+            .store(in: &cancellables)
     }
 
     private func loadSampleOrders() {
@@ -204,7 +167,35 @@ class OrderService: OrderServiceProtocol {
             items: [sandwich, coffee]
         )
 
-        orders = [order1, order2, order3]
-        subject.send(orders)
+        _ = repository.createOrder(order1)
+        _ = repository.createOrder(order2)
+        _ = repository.createOrder(order3)
+    }
+
+    private var cancellables = Set<AnyCancellable>()
+}
+
+// MARK: - Mock Database Service for Testing
+private class MockDatabaseService: DatabaseServiceProtocol {
+    private let coreDataStack: CoreDataStack
+
+    init() {
+        coreDataStack = CoreDataStack(inMemory: true)
+    }
+
+    var mainContext: NSManagedObjectContext {
+        return coreDataStack.mainContext
+    }
+
+    func newBackgroundContext() -> NSManagedObjectContext {
+        return coreDataStack.newBackgroundContext()
+    }
+
+    func saveContext(_ context: NSManagedObjectContext) throws {
+        try coreDataStack.saveContext(context)
+    }
+
+    func performBackgroundTask(_ block: @escaping (NSManagedObjectContext) throws -> Void) throws {
+        try coreDataStack.performBackgroundTask(block)
     }
 }
