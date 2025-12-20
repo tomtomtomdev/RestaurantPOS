@@ -18,6 +18,21 @@ class OrderDetailViewController: UIViewController {
     private let orderRepository: OrderRepositoryProtocol
     private var cancellables = Set<AnyCancellable>()
 
+    // Payment properties
+    private let paymentService: PaymentServiceProtocol
+    private lazy var paymentButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setTitle("Process Payment", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+        button.backgroundColor = .systemGreen
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.addTarget(self, action: #selector(paymentButtonTapped), for: .touchUpInside)
+        button.isHidden = true
+        return button
+    }()
+
     // UI Components
     private lazy var scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -94,9 +109,17 @@ class OrderDetailViewController: UIViewController {
 
     // MARK: - Initialization
 
-    init(order: Order, orderRepository: OrderRepositoryProtocol = OrderRepository(databaseService: CoreDataStack.shared)) {
+    init(
+        order: Order,
+        orderRepository: OrderRepositoryProtocol = OrderRepository(databaseService: CoreDataStack.shared),
+        paymentService: PaymentServiceProtocol = PaymentService(
+            paymentRepository: PaymentRepository(databaseService: CoreDataStack.shared),
+            orderRepository: OrderRepository(databaseService: CoreDataStack.shared)
+        )
+    ) {
         self.order = order
         self.orderRepository = orderRepository
+        self.paymentService = paymentService
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -143,6 +166,7 @@ class OrderDetailViewController: UIViewController {
         contentView.addSubview(timelineSectionLabel)
         contentView.addSubview(timelineStackView)
         contentView.addSubview(totalSummaryView)
+        contentView.addSubview(paymentButton)
     }
 
     private func setupConstraints() {
@@ -194,7 +218,13 @@ class OrderDetailViewController: UIViewController {
             totalSummaryView.topAnchor.constraint(equalTo: timelineStackView.bottomAnchor, constant: 24),
             totalSummaryView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             totalSummaryView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            totalSummaryView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16)
+
+            // Payment button
+            paymentButton.topAnchor.constraint(equalTo: totalSummaryView.bottomAnchor, constant: 24),
+            paymentButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            paymentButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            paymentButton.heightAnchor.constraint(equalToConstant: 56),
+            paymentButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -32)
         ])
     }
 
@@ -211,10 +241,24 @@ class OrderDetailViewController: UIViewController {
         statusCardView.configure(with: order)
         totalSummaryView.configure(with: order)
         setupTimeline()
+        updatePaymentButtonVisibility()
 
         // Update table view height based on content
         DispatchQueue.main.async {
             self.updateTableViewHeight()
+        }
+    }
+
+    private func updatePaymentButtonVisibility() {
+        // Show payment button only when order is ready and not yet paid
+        let canShowPaymentButton = order.status == .ready
+
+        DispatchQueue.main.async {
+            self.paymentButton.isHidden = !canShowPaymentButton
+
+            if canShowPaymentButton {
+                self.paymentButton.setTitle("Pay \(order.formattedTotal)", for: .normal)
+            }
         }
     }
 
@@ -303,6 +347,17 @@ class OrderDetailViewController: UIViewController {
         setupTimeline()
         itemsTableView.reloadData()
         updateTableViewHeight()
+        updatePaymentButtonVisibility()
+    }
+
+    // MARK: - Payment Actions
+
+    @objc private func paymentButtonTapped() {
+        let paymentViewController = PaymentViewController(order: order, paymentService: paymentService)
+        let navigationController = UINavigationController(rootViewController: paymentViewController)
+
+        // Present payment view controller modally
+        present(navigationController, animated: true)
     }
 
     private func showErrorAlert(_ error: Error) {
