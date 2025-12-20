@@ -19,7 +19,7 @@ public class OrderRepository: OrderRepositoryProtocol {
             let context = self.databaseService.newBackgroundContext()
             context.perform {
                 do {
-                    let entity = OrderMapper.toEntity(order, in: context)
+                    _ = OrderMapper.toEntity(order, in: context)
 
                     // Check if order number already exists
                     let fetchRequest: NSFetchRequest<OrderEntity> = OrderEntity.fetchRequest()

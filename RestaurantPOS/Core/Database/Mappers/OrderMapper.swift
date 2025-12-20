@@ -68,7 +68,7 @@ class OrderMapper {
         let newItems = order.items
 
         // Create a set of existing item IDs
-        let existingItemIds = Set(currentItems.compactMap { $0.id })
+        _ = Set(currentItems.compactMap { $0.id })
 
         // Remove items that are no longer present
         for currentItem in currentItems {

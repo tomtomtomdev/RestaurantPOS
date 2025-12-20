@@ -97,14 +97,17 @@ public class PaymentService: PaymentServiceProtocol {
                 }
                 .flatMap { [weak self] processedPayment -> AnyPublisher<Payment, PaymentError> in
                     // Update order status to completed
-                    let completedOrder = order.withStatus(.completed)
+                    let completedOrder = order.updateStatus(.completed)
                     switch completedOrder {
                     case .success(let updatedOrder):
-                        return self?.orderRepository.updateOrder(updatedOrder)
+                        guard let self = self else {
+                            return Fail(error: PaymentError.processorUnavailable).eraseToAnyPublisher()
+                        }
+                        return self.orderRepository.updateOrder(updatedOrder)
                             .map { _ in processedPayment }
-                            .eraseToAnyPublisher() ?? Fail(error: PaymentError.processorUnavailable)
+                            .mapError { _ in PaymentError.processorUnavailable }
                             .eraseToAnyPublisher()
-                    case .failure(let error):
+                    case .failure(_):
                         // If order update fails, we should still return the successful payment
                         // but log this situation in a real implementation
                         return Just(processedPayment)
@@ -130,15 +133,14 @@ public class PaymentService: PaymentServiceProtocol {
                 if isSuccess {
                     // Generate transaction ID
                     let transactionID = "txn_\(UUID().uuidString.lowercased().prefix(8))"
-                    let lastFourDigits = payment.lastFourDigits ?? "1234"
+                    _ = payment.lastFourDigits ?? "1234"
 
-                    let completedPayment = payment
-                        .withStatus(.completed)
-                        .withTransactionID(transactionID)
+                    let statusResult = payment.withStatus(.completed)
 
-                    switch completedPayment {
-                    case .success(let success):
-                        return success
+                    switch statusResult {
+                    case .success(let statusPayment):
+                        let completedPayment = statusPayment.withTransactionID(transactionID)
+                        return completedPayment
                     case .failure(let error):
                         throw error
                     }
@@ -152,11 +154,12 @@ public class PaymentService: PaymentServiceProtocol {
                     ]
 
                     let failureReason = failureReasons.randomElement() ?? "Unknown error"
-                    let failedPayment = payment.withStatus(.failed).withFailureReason(failureReason)
+                    let statusResult = payment.withStatus(.failed)
 
-                    switch failedPayment {
-                    case .success(let success):
-                        return success
+                    switch statusResult {
+                    case .success(let statusPayment):
+                        let failedPayment = statusPayment.withFailureReason(failureReason)
+                        return failedPayment
                     case .failure(let error):
                         throw error
                     }
@@ -190,30 +193,59 @@ public class PaymentService: PaymentServiceProtocol {
         // Determine refund status
         let newStatus: PaymentStatus = amount == payment.amount ? .refunded : .partiallyRefunded
 
-        return paymentRepository.updatePayment(
-            payment.withStatus(newStatus) ?? payment
-        )
-        .flatMap { [weak self] updatedPayment -> AnyPublisher<Payment, PaymentError> in
-            // Update order status if fully refunded
-            if newStatus == .refunded {
-                return self?.orderRepository.getOrder(id: payment.orderID)
-                    .compactMap { $0 }
-                    .compactMap { order -> Order? in
-                        try? order.withStatus(.cancelled).get()
+        // First update the payment status
+        switch payment.withStatus(newStatus) {
+        case .success(let updatedPayment):
+            // Update payment in repository
+            return paymentRepository.updatePayment(updatedPayment)
+                .flatMap { [weak self] updatedPayment -> AnyPublisher<Payment, PaymentError> in
+                    // Update order status if fully refunded
+                    if newStatus == .refunded {
+                        guard let self = self else {
+                            return Just(updatedPayment)
+                                .setFailureType(to: PaymentError.self)
+                                .eraseToAnyPublisher()
+                        }
+
+                        // Get the order and try to cancel it
+                        return self.orderRepository.getOrder(id: payment.orderID)
+                            .mapError { _ in PaymentError.processorUnavailable }
+                            .compactMap { $0 }
+                            .map { order in
+                                // Try to update order status
+                                switch order.updateStatus(.cancelled) {
+                                case .success(let cancelledOrder):
+                                    return cancelledOrder
+                                case .failure(_):
+                                    // If order update fails, return original order (payment still succeeds)
+                                    return order
+                                }
+                            }
+                            .flatMap { cancelledOrder -> AnyPublisher<Payment, PaymentError> in
+                                // Update the order in repository
+                                return self.orderRepository.updateOrder(cancelledOrder)
+                                    .map { _ in updatedPayment }
+                                    .mapError { _ in PaymentError.processorUnavailable }
+                                    .eraseToAnyPublisher()
+                            }
+                            .catch { _ -> AnyPublisher<Payment, PaymentError> in
+                                // If order operations fail, still return the successful payment
+                                return Just(updatedPayment)
+                                    .setFailureType(to: PaymentError.self)
+                                    .eraseToAnyPublisher()
+                            }
+                            .eraseToAnyPublisher()
+                    } else {
+                        // Partial refund, no order status change needed
+                        return Just(updatedPayment)
+                            .setFailureType(to: PaymentError.self)
+                            .eraseToAnyPublisher()
                     }
-                    .flatMap { refundedOrder in
-                        self?.orderRepository.updateOrder(refundedOrder) ?? Fail(error: PaymentError.processorUnavailable)
-                            .map { _ in updatedPayment }
-                    }
-                    .eraseToAnyPublisher() ?? Fail(error: PaymentError.processorUnavailable)
-                    .eraseToAnyPublisher()
-            } else {
-                return Just(updatedPayment)
-                    .setFailureType(to: PaymentError.self)
-                    .eraseToAnyPublisher()
-            }
+                }
+                .eraseToAnyPublisher()
+        case .failure(let error):
+            return Fail(error: error).eraseToAnyPublisher()
         }
-        .eraseToAnyPublisher()
     }
 
     // MARK: - Void Payment
@@ -225,22 +257,51 @@ public class PaymentService: PaymentServiceProtocol {
                 .eraseToAnyPublisher()
         }
 
-        return paymentRepository.updatePayment(payment.withStatus(.voided) ?? payment)
-            .flatMap { [weak self] voidedPayment -> AnyPublisher<Payment, PaymentError> in
-                // Update order status back to pending if payment was cancelled
-                return self?.orderRepository.getOrder(id: payment.orderID)
-                    .compactMap { $0 }
-                    .compactMap { order -> Order? in
-                        try? order.withStatus(.pending).get()
+        switch payment.withStatus(.voided) {
+        case .success(let voidedPayment):
+            // Update payment in repository first
+            return paymentRepository.updatePayment(voidedPayment)
+                .flatMap { [weak self] voidedPayment -> AnyPublisher<Payment, PaymentError> in
+                    // Update order status back to pending if payment was voided
+                    guard let self = self else {
+                        return Just(voidedPayment)
+                            .setFailureType(to: PaymentError.self)
+                            .eraseToAnyPublisher()
                     }
-                    .flatMap { pendingOrder in
-                        self?.orderRepository.updateOrder(pendingOrder) ?? Fail(error: PaymentError.processorUnavailable)
-                            .map { _ in voidedPayment }
-                    }
-                    .eraseToAnyPublisher() ?? Fail(error: PaymentError.processorUnavailable)
-                    .eraseToAnyPublisher()
-            }
-            .eraseToAnyPublisher()
+
+                    // Get the order and try to set it back to pending
+                    return self.orderRepository.getOrder(id: payment.orderID)
+                        .mapError { _ in PaymentError.processorUnavailable }
+                        .compactMap { $0 }
+                        .map { order in
+                            // Try to update order status
+                            switch order.updateStatus(.pending) {
+                            case .success(let pendingOrder):
+                                return pendingOrder
+                            case .failure(_):
+                                // If order update fails, return original order (payment still succeeds)
+                                return order
+                            }
+                        }
+                        .flatMap { pendingOrder -> AnyPublisher<Payment, PaymentError> in
+                            // Update the order in repository
+                            return self.orderRepository.updateOrder(pendingOrder)
+                                .map { _ in voidedPayment }
+                                .mapError { _ in PaymentError.processorUnavailable }
+                                .eraseToAnyPublisher()
+                        }
+                        .catch { _ -> AnyPublisher<Payment, PaymentError> in
+                            // If order operations fail, still return the successful voided payment
+                            return Just(voidedPayment)
+                                .setFailureType(to: PaymentError.self)
+                                .eraseToAnyPublisher()
+                        }
+                        .eraseToAnyPublisher()
+                }
+                .eraseToAnyPublisher()
+        case .failure(let error):
+            return Fail(error: error).eraseToAnyPublisher()
+        }
     }
 
     // MARK: - Payment Methods

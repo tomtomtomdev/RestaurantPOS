@@ -264,13 +264,10 @@ class PaymentViewController: UIViewController {
             }
             .store(in: &cancellables)
 
-        viewModel.$error
-            .compactMap { $0 }
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] error in
-                self?.showErrorAlert(error)
-            }
-            .store(in: &cancellables)
+        viewModel.error.bind { [weak self] error in
+            guard let error = error as? PaymentError else { return }
+            self?.showErrorAlert(error)
+        }
 
         // Handle payment success
         viewModel.$paymentResult

@@ -17,8 +17,8 @@ public struct Payment: Identifiable, Equatable {
     public let orderID: UUID
     public let amount: Decimal
     public let paymentType: PaymentType
-    public let status: PaymentStatus
-    public let transactionID: String?
+    public var status: PaymentStatus
+    public var transactionID: String?
     public let lastFourDigits: String?
     public let processor: PaymentProcessor?
     public let createdAt: Date
@@ -225,7 +225,7 @@ public enum PaymentProcessor: String, CaseIterable, Equatable {
     case paypal = "paypal"
     case applePay = "apple_pay"
     case googlePay = "google_pay"
-    case internal = "internal"
+    case `internal` = "internal"
     case manual = "manual"
 
     public var displayName: String {
@@ -340,6 +340,26 @@ public struct PaymentMethod: Identifiable, Equatable {
         let currentMonth = calendar.component(.month, from: Date())
 
         return year < currentYear || (year == currentYear && month < currentMonth)
+    }
+}
+
+// MARK: - Equatable Conformance
+
+extension Payment {
+    public static func == (lhs: Payment, rhs: Payment) -> Bool {
+        return lhs.id == rhs.id &&
+               lhs.orderID == rhs.orderID &&
+               lhs.amount == rhs.amount &&
+               lhs.paymentType == rhs.paymentType &&
+               lhs.status == rhs.status &&
+               lhs.transactionID == rhs.transactionID &&
+               lhs.lastFourDigits == rhs.lastFourDigits &&
+               lhs.processor == rhs.processor &&
+               lhs.createdAt == rhs.createdAt &&
+               lhs.processedAt == rhs.processedAt &&
+               lhs.failedAt == rhs.failedAt &&
+               lhs.failureReason == rhs.failureReason &&
+               NSDictionary(dictionary: lhs.metadata).isEqual(to: rhs.metadata)
     }
 }
 

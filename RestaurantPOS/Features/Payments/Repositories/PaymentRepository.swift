@@ -53,14 +53,14 @@ public class PaymentRepository: PaymentRepositoryProtocol {
                 do {
                     // Check for duplicate payments
                     let existingPayments = try self.fetchPayments(for: payment.orderID, in: context)
-                    if existingPayments.contains(where: { $0.status == .completed }) {
+                    if existingPayments.contains(where: { $0.status == PaymentStatus.completed.rawValue }) {
                         promise(.failure(.duplicatePayment))
                         return
                     }
 
                     // Create new payment entity
                     let paymentEntity = PaymentEntity(context: context)
-                    self.paymentMapper.map(payment, to: paymentEntity)
+                    self.paymentMapper.map(payment, to: paymentEntity, in: context)
 
                     try context.save()
 
@@ -136,7 +136,7 @@ public class PaymentRepository: PaymentRepositoryProtocol {
             context.perform {
                 do {
                     let request: NSFetchRequest<PaymentEntity> = PaymentEntity.fetchRequest()
-                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.createdAt, ascending: false)]
+                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.timestamp, ascending: false)]
 
                     let results = try context.fetch(request)
                     let payments = results.map { self.paymentMapper.map(from: $0) }
@@ -170,7 +170,7 @@ public class PaymentRepository: PaymentRepositoryProtocol {
                         return
                     }
 
-                    self.paymentMapper.map(payment, to: paymentEntity)
+                    self.paymentMapper.map(payment, to: paymentEntity, in: context)
                     try context.save()
 
                     let updatedPayment = self.paymentMapper.map(from: paymentEntity)
@@ -232,7 +232,7 @@ public class PaymentRepository: PaymentRepositoryProtocol {
                 do {
                     let request: NSFetchRequest<PaymentEntity> = PaymentEntity.fetchRequest()
                     request.predicate = NSPredicate(format: "status == %@", status.rawValue)
-                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.createdAt, ascending: false)]
+                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.timestamp, ascending: false)]
 
                     let results = try context.fetch(request)
                     let payments = results.map { self.paymentMapper.map(from: $0) }
@@ -258,11 +258,11 @@ public class PaymentRepository: PaymentRepositoryProtocol {
                 do {
                     let request: NSFetchRequest<PaymentEntity> = PaymentEntity.fetchRequest()
                     request.predicate = NSPredicate(
-                        format: "createdAt >= %@ AND createdAt <= %@",
+                        format: "timestamp >= %@ AND timestamp <= %@",
                         startDate as CVarArg,
                         endDate as CVarArg
                     )
-                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.createdAt, ascending: false)]
+                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.timestamp, ascending: false)]
 
                     let results = try context.fetch(request)
                     let payments = results.map { self.paymentMapper.map(from: $0) }
@@ -310,15 +310,14 @@ public class PaymentRepository: PaymentRepositoryProtocol {
                 do {
                     let request: NSFetchRequest<PaymentEntity> = PaymentEntity.fetchRequest()
 
-                    // Search in transaction ID, last four digits, and processor
+                    // Search in payment type and status
                     let searchPredicates = [
-                        NSPredicate(format: "transactionID CONTAINS[cd] %@", query),
-                        NSPredicate(format: "lastFourDigits CONTAINS[cd] %@", query),
-                        NSPredicate(format: "processor CONTAINS[cd] %@", query)
+                        NSPredicate(format: "paymentType CONTAINS[cd] %@", query),
+                        NSPredicate(format: "status CONTAINS[cd] %@", query)
                     ]
 
                     request.predicate = NSCompoundPredicate(orPredicateWithSubpredicates: searchPredicates)
-                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.createdAt, ascending: false)]
+                    request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.timestamp, ascending: false)]
 
                     let results = try context.fetch(request)
                     let payments = results.map { self.paymentMapper.map(from: $0) }
@@ -336,8 +335,8 @@ public class PaymentRepository: PaymentRepositoryProtocol {
 
     private func fetchPayments(for orderID: UUID, in context: NSManagedObjectContext) throws -> [PaymentEntity] {
         let request: NSFetchRequest<PaymentEntity> = PaymentEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "orderID == %@", orderID as CVarArg)
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.createdAt, ascending: false)]
+        request.predicate = NSPredicate(format: "order.id == %@", orderID as CVarArg)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \PaymentEntity.timestamp, ascending: false)]
         return try context.fetch(request)
     }
 

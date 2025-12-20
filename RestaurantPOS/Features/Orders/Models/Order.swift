@@ -80,6 +80,14 @@ public struct Order: Codable, Identifiable, Equatable {
         items.reduce(0) { $0 + $1.quantity }
     }
 
+    public var formattedTotal: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.locale = Locale(identifier: "en_US")
+        return formatter.string(from: NSDecimalNumber(decimal: totalAmount)) ?? "$0.00"
+    }
+
     public func updateStatus(_ newStatus: OrderStatus) -> Result<Order, OrderError> {
         guard status.canTransition(to: newStatus) else {
             return .failure(.invalidStatusTransition(from: status, to: newStatus))

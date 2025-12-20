@@ -34,7 +34,7 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
     @Published public var tipPercentage: Double = 0
     @Published public var availableProcessors: [PaymentProcessor] = []
     @Published public var paymentHistory: [Payment] = []
-
+    
     // MARK: - Private Properties
 
     private let paymentService: PaymentServiceProtocol
@@ -221,21 +221,13 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
         }
 
         isProcessing = true
-        isLoading = true
-
-        // Create payment object
-        let payment = Payment(
-            orderID: order.id,
-            amount: paymentAmount,
-            paymentType: selectedPaymentType,
-            processor: selectedProcessor,
-            lastFourDigits: selectedPaymentType.requiresCardDetails ? String(cardNumber.suffix(4)) : nil
-        )
+        setLoading(true)
 
         // Add tip to metadata if present
         var metadata: [String: Any] = [:]
+
         if tipAmount > 0 {
-            metadata["tip"] = tipAmount.doubleValue
+            metadata["tip"] = NSDecimalNumber(decimal: tipAmount).doubleValue
             metadata["tip_percentage"] = tipPercentage
         }
 
@@ -244,9 +236,21 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
             metadata["cardholder_name"] = cardholderName
             metadata["card_last_four"] = String(cardNumber.suffix(4))
             if let month = Int(expirationMonth), let year = Int(expirationYear) {
-                metadata["expiration"] = "\(String(format: "%02d", month))/\(String(year.suffix(2)))"
+                let yearString = String(year)
+                let lastTwoDigits = yearString.count >= 2 ? String(yearString.suffix(2)) : yearString
+                metadata["expiration"] = "\(String(format: "%02d", month))/\(lastTwoDigits)"
             }
         }
+
+        // Create payment object
+        let payment = Payment(
+            orderID: order.id,
+            amount: paymentAmount,
+            paymentType: selectedPaymentType,
+            lastFourDigits: selectedPaymentType.requiresCardDetails ? String(cardNumber.suffix(4)) : nil,
+            processor: selectedProcessor,
+            metadata: metadata
+        )
 
         // Process payment
         paymentService.processPayment(payment)
@@ -254,7 +258,7 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
             .sink(
                 receiveCompletion: { [weak self] completion in
                     self?.isProcessing = false
-                    self?.isLoading = false
+                    self?.setLoading(false)
 
                     if case .failure(let error) = completion {
                         self?.handleError(error)
@@ -353,7 +357,7 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
         paymentService.getPaymentMethods(for: selectedProcessor)
             .receive(on: DispatchQueue.main)
             .sink(
-                receiveCompletion: { [weak self] completion in
+                receiveCompletion: { completion in
                     if case .failure(let error) = completion {
                         print("Error loading payment methods: \(error)")
                     }
@@ -370,7 +374,7 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
     private func handlePaymentSuccess(_ payment: Payment) {
         self.paymentResult = payment
         isProcessing = false
-        isLoading = false
+        setLoading(false)
 
         // Refresh payment history
         if let orderID = order?.id {
@@ -385,6 +389,10 @@ public class PaymentViewModel: BaseViewModel, ObservableObject {
             // Success handling would go here
             print("Payment completed successfully")
         }
+    }
+
+    private func handleError(_ error: PaymentError) {
+        setError(error)
     }
 
     private func formatCurrency(_ amount: Decimal) -> String {

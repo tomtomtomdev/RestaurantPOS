@@ -253,11 +253,11 @@ class OrderDetailViewController: UIViewController {
         // Show payment button only when order is ready and not yet paid
         let canShowPaymentButton = order.status == .ready
 
-        DispatchQueue.main.async {
+        DispatchQueue.main.async { [self] in
             self.paymentButton.isHidden = !canShowPaymentButton
 
             if canShowPaymentButton {
-                self.paymentButton.setTitle("Pay \(order.formattedTotal)", for: .normal)
+                self.paymentButton.setTitle("Pay \(self.order.formattedTotal)", for: .normal)
             }
         }
     }
